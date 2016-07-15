@@ -558,7 +558,7 @@ class course_modinfo {
      * @return array Information about sections, indexed by section number (not id)
      */
     protected static function build_course_section_cache($course) {
-        global $DB;
+        global $DB, $CFG;
 
         // Get section data
         $sections = $DB->get_records('course_sections', array('course' => $course->id), 'section',
@@ -566,13 +566,26 @@ class course_modinfo {
                 'availability');
         $compressedsections = array();
 
-        $formatoptionsdef = course_get_format($course)->section_format_options();
+        $course_format = course_get_format($course);
+
+        if (isset($CFG->partial_course_cache_rebuild) && $CFG->partial_course_cache_rebuild) {
+            $cachecoursemodinfo = \cache::make('core', 'coursemodinfo');
+            $coursemodinfo = $cachecoursemodinfo->get($course->id);
+            if ($coursemodinfo !== false) {
+                $compressedsections = $coursemodinfo->sectioncache;
+            }
+        }
+
+        $formatoptionsdef = $course_format->section_format_options();
         // Remove unnecessary data and add availability
         foreach ($sections as $number => $section) {
+            if (isset($compressedsections[$number])) {
+                continue;
+            }
             // Add cached options from course format to $section object
             foreach ($formatoptionsdef as $key => $option) {
                 if (!empty($option['cache'])) {
-                    $formatoptions = course_get_format($course)->get_format_options($section);
+                    $formatoptions = $course_format->get_format_options($section);
                     if (!array_key_exists('cachedefault', $option) || $option['cachedefault'] !== $formatoptions[$key]) {
                         $section->$key = $formatoptions[$key];
                     }
@@ -2252,7 +2265,9 @@ function rebuild_course_cache($courseid=0, $clearonly=false) {
     } else {
         // Clearing cache for one course, make sure it is deleted from user request cache as well.
         increment_revision_number('course', 'cacherev', 'id = :id', array('id' => $courseid));
-        $cachecoursemodinfo->delete($courseid);
+        if (!isset($CFG->partial_course_cache_rebuild) || !$CFG->partial_course_cache_rebuild) {
+            $cachecoursemodinfo->delete($courseid);
+        }
         course_modinfo::clear_instance_cache($courseid);
         // Update global values too.
         if ($courseid == $COURSE->id || $courseid == $SITE->id) {

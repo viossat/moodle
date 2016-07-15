@@ -1019,15 +1019,32 @@ function get_array_of_activities($courseid) {
             $rawmods = get_course_mods($courseid);
             $sections = $DB->get_records('course_sections', array('course' => $courseid), 'section ASC', 'id,section,sequence');
         }
+
+        if (isset($CFG->partial_course_cache_rebuild) && $CFG->partial_course_cache_rebuild) {
+            $cachecoursemodinfo = \cache::make('core', 'coursemodinfo');
+            $coursemodinfo = $cachecoursemodinfo->get($courseid);
+            if ($coursemodinfo !== false) {
+                $mod = $coursemodinfo->modinfo;
+            }
+        }
+
         // Build array of activities.
        foreach ($sections as $section) {
            if (!empty($section->sequence)) {
                $sequence = explode(",", $section->sequence);
-               foreach ($sequence as $seq) {
-                   if (empty($rawmods[$seq])) {
+               $sequence_count = count($sequence);
+               for ($iseq = 0; $iseq < $sequence_count; $iseq++) {
+                   $seq = $sequence[$iseq];
+                   if (empty($rawmods[$seq]) || isset($mod[$seq])) {
                        continue;
                    }
-                   $mod[$seq] = new stdClass();
+
+                   $mod_position = ($iseq === 0) ? 0 : array_search($sequence[$iseq - 1], array_keys($mod)) + 1;
+                   // Do not use array_merge() instead of +
+                   $mod = array_slice($mod, 0, $mod_position, true)
+                        + array($seq => new stdClass())
+                        + array_slice($mod, $mod_position, null, true);
+
                    $mod[$seq]->id               = $rawmods[$seq]->instance;
                    $mod[$seq]->cm               = $rawmods[$seq]->id;
                    $mod[$seq]->mod              = $rawmods[$seq]->modname;
