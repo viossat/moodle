@@ -1020,12 +1020,10 @@ function get_array_of_activities($courseid) {
             $sections = $DB->get_records('course_sections', array('course' => $courseid), 'section ASC', 'id,section,sequence');
         }
 
-        if (isset($CFG->partial_course_cache_rebuild) && $CFG->partial_course_cache_rebuild) {
-            $cachecoursemodinfo = \cache::make('core', 'coursemodinfo');
-            $coursemodinfo = $cachecoursemodinfo->get($courseid);
-            if ($coursemodinfo !== false) {
-                $mod = $coursemodinfo->modinfo;
-            }
+        $cachecoursemodinfo = \cache::make('core', 'coursemodinfo');
+        $coursemodinfo = $cachecoursemodinfo->get($courseid);
+        if ($coursemodinfo !== false) {
+            $mod = $coursemodinfo->modinfo;
         }
 
         // Build array of activities.

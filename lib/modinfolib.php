@@ -558,7 +558,7 @@ class course_modinfo {
      * @return array Information about sections, indexed by section number (not id)
      */
     protected static function build_course_section_cache($course) {
-        global $DB, $CFG;
+        global $DB;
 
         // Get section data
         $sections = $DB->get_records('course_sections', array('course' => $course->id), 'section',
@@ -568,12 +568,10 @@ class course_modinfo {
 
         $course_format = course_get_format($course);
 
-        if (isset($CFG->partial_course_cache_rebuild) && $CFG->partial_course_cache_rebuild) {
-            $cachecoursemodinfo = \cache::make('core', 'coursemodinfo');
-            $coursemodinfo = $cachecoursemodinfo->get($course->id);
-            if ($coursemodinfo !== false) {
-                $compressedsections = $coursemodinfo->sectioncache;
-            }
+        $cachecoursemodinfo = \cache::make('core', 'coursemodinfo');
+        $coursemodinfo = $cachecoursemodinfo->get($course->id);
+        if ($coursemodinfo !== false) {
+            $compressedsections = $coursemodinfo->sectioncache;
         }
 
         $formatoptionsdef = $course_format->section_format_options();
@@ -2265,9 +2263,6 @@ function rebuild_course_cache($courseid=0, $clearonly=false) {
     } else {
         // Clearing cache for one course, make sure it is deleted from user request cache as well.
         increment_revision_number('course', 'cacherev', 'id = :id', array('id' => $courseid));
-        if (!isset($CFG->partial_course_cache_rebuild) || !$CFG->partial_course_cache_rebuild) {
-            $cachecoursemodinfo->delete($courseid);
-        }
         course_modinfo::clear_instance_cache($courseid);
         // Update global values too.
         if ($courseid == $COURSE->id || $courseid == $SITE->id) {

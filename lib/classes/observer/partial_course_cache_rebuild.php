@@ -35,18 +35,14 @@ class partial_course_cache_rebuild
      */
     public static function invalidate_section_cache(\core\event\base $event)
     {
-        global $CFG;
-
-        if (isset($CFG->partial_course_cache_rebuild) && $CFG->partial_course_cache_rebuild) {
-            $cachecoursemodinfo = \cache::make('core', 'coursemodinfo');
-            $cachecoursemodinfo->acquire_lock($event->courseid);
-            $coursemodinfo = $cachecoursemodinfo->get($event->courseid);
-            if ($coursemodinfo !== false) {
-                unset($coursemodinfo->sectioncache[$event->other['sectionnum']]);
-                $cachecoursemodinfo->set($event->courseid, $coursemodinfo);
-            }
-            $cachecoursemodinfo->release_lock($event->courseid);
+        $cachecoursemodinfo = \cache::make('core', 'coursemodinfo');
+        $cachecoursemodinfo->acquire_lock($event->courseid);
+        $coursemodinfo = $cachecoursemodinfo->get($event->courseid);
+        if ($coursemodinfo !== false) {
+            unset($coursemodinfo->sectioncache[$event->other['sectionnum']]);
+            $cachecoursemodinfo->set($event->courseid, $coursemodinfo);
         }
+        $cachecoursemodinfo->release_lock($event->courseid);
     }
 
     /**
@@ -56,17 +52,13 @@ class partial_course_cache_rebuild
      */
     public static function invalidate_module_cache(\core\event\base $event)
     {
-        global $CFG;
-
-        if (isset($CFG->partial_course_cache_rebuild) && $CFG->partial_course_cache_rebuild) {
-            $cachecoursemodinfo = \cache::make('core', 'coursemodinfo');
-            $cachecoursemodinfo->acquire_lock($event->courseid);
-            $coursemodinfo = $cachecoursemodinfo->get($event->courseid);
-            if ($coursemodinfo !== false) {
-                unset($coursemodinfo->modinfo[$event->objectid]);
-                $cachecoursemodinfo->set($event->courseid, $coursemodinfo);
-            }
-            $cachecoursemodinfo->release_lock($event->courseid);
+        $cachecoursemodinfo = \cache::make('core', 'coursemodinfo');
+        $cachecoursemodinfo->acquire_lock($event->courseid);
+        $coursemodinfo = $cachecoursemodinfo->get($event->courseid);
+        if ($coursemodinfo !== false) {
+            unset($coursemodinfo->modinfo[$event->objectid]);
+            $cachecoursemodinfo->set($event->courseid, $coursemodinfo);
         }
+        $cachecoursemodinfo->release_lock($event->courseid);
     }
 }
