@@ -727,6 +727,7 @@ class core_course_externallib_testcase extends externallib_advanced_testcase {
 
         $conditions = array('course' => $course->id, 'section' => 2);
         $DB->set_field('course_sections', 'summary', 'Text with iframe <iframe src="https://moodle.org"></iframe>', $conditions);
+        course_invalidate_section_cache($DB->get_field('course_sections', 'id', $conditions));
         rebuild_course_cache($course->id, true);
 
         return array($course, $forumcm, $datacm, $pagecm, $labelcm, $urlcm);

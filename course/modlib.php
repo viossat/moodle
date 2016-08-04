@@ -337,7 +337,7 @@ function edit_module_post_actions($moduleinfo, $course) {
         $moduleinfo->gradingman = $gradingman;
         $moduleinfo->showgradingmanagement = $showgradingmanagement;
     }
-
+    course_invalidate_module_cache($moduleinfo->coursemodule);
     rebuild_course_cache($course->id, true);
     if ($hasgrades) {
         grade_regrade_final_grades($course->id);

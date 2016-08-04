@@ -358,6 +358,8 @@ class assign_upgrade_manager {
         if ($cm) {
             course_delete_module($cm->id);
         }
+        course_invalidate_module_cache($oldcoursemodule);
+        course_invalidate_module_cache($newcoursemodule);
         rebuild_course_cache($oldcoursemodule->course);
         return true;
     }

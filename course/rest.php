@@ -130,6 +130,7 @@ switch($requestmethod) {
                         $cm->indent = $value;
                         if ($cm->indent >= 0) {
                             $DB->update_record('course_modules', $cm);
+                            course_invalidate_module_cache($cm);
                             rebuild_course_cache($cm->course);
                         }
                         break;

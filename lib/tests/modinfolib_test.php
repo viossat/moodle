@@ -66,6 +66,7 @@ class core_modinfolib_testcase extends advanced_testcase {
                 ']}';
         $DB->set_field('course_sections', 'availability', $availability,
                 array('course' => $course->id, 'section' => 2));
+        course_invalidate_section_cache($DB->get_field('course_sections', 'id', ['course' => $course->id, 'section' => 2]));
         rebuild_course_cache($course->id, true);
         $sectiondb = $DB->get_record('course_sections', array('course' => $course->id, 'section' => 2));
 
@@ -645,6 +646,8 @@ class core_modinfolib_testcase extends advanced_testcase {
         // Update availability for cm and section in database.
         $DB->set_field('course_modules', 'availability', '{}', array('id' => $cm->id));
         $DB->set_field('course_sections', 'availability', '{}', array('id' => $section->id));
+        course_invalidate_module_cache($cm);
+        course_invalidate_section_cache($section);
 
         // Clear cache and get modinfo again.
         rebuild_course_cache($course->id, true);

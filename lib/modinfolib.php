@@ -593,6 +593,7 @@ class course_modinfo {
             $compressedsections[$number] = clone($section);
             section_info::convert_for_section_cache($compressedsections[$number]);
         }
+        ksort($compressedsections);
 
         return $compressedsections;
     }
@@ -2229,8 +2230,9 @@ function get_course_and_cm_from_instance($instanceorid, $modulename, $courseorid
  * @param int $courseid id of course to rebuild, empty means all
  * @param boolean $clearonly only clear the cache, gets rebuild automatically on the fly.
  *     Recommended to set to true to avoid unnecessary multiple rebuilding.
+ * @param boolean $partialrebuild if true (default), will not delete the whole cache
  */
-function rebuild_course_cache($courseid=0, $clearonly=false) {
+function rebuild_course_cache($courseid=0, $clearonly=false, $partialrebuild=true) {
     global $COURSE, $SITE, $DB, $CFG;
 
     // Function rebuild_course_cache() can not be called during upgrade unless it's clear only.
@@ -2250,7 +2252,9 @@ function rebuild_course_cache($courseid=0, $clearonly=false) {
     if (empty($courseid)) {
         // Clearing caches for all courses.
         increment_revision_number('course', 'cacherev', '');
-        $cachecoursemodinfo->purge();
+        if (!$partialrebuild) {
+            $cachecoursemodinfo->purge();
+        }
         course_modinfo::clear_instance_cache();
         // Update global values too.
         $sitecacherev = $DB->get_field('course', 'cacherev', array('id' => SITEID));
@@ -2263,6 +2267,9 @@ function rebuild_course_cache($courseid=0, $clearonly=false) {
     } else {
         // Clearing cache for one course, make sure it is deleted from user request cache as well.
         increment_revision_number('course', 'cacherev', 'id = :id', array('id' => $courseid));
+        if (!$partialrebuild) {
+            $cachecoursemodinfo->delete($courseid);
+        }
         course_modinfo::clear_instance_cache($courseid);
         // Update global values too.
         if ($courseid == $COURSE->id || $courseid == $SITE->id) {

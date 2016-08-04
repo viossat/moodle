@@ -762,6 +762,9 @@ abstract class format_base {
             }
         }
         if ($needrebuild) {
+            if ($sectionid != 0) {
+                course_invalidate_section_cache($sectionid);
+            }
             rebuild_course_cache($this->courseid, true);
         }
         if ($changed) {
@@ -1021,6 +1024,7 @@ abstract class format_base {
         // Delete section and it's format options.
         $DB->delete_records('course_format_options', array('sectionid' => $section->id));
         $DB->delete_records('course_sections', array('id' => $section->id));
+        course_invalidate_section_cache($section);
         rebuild_course_cache($course->id, true);
 
         // Descrease 'numsections' if needed.

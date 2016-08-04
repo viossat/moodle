@@ -65,23 +65,6 @@ $observers = array(
         'callback'    => 'core_competency\api::observe_course_module_completion_updated',
     ),
 
-    // Partial course cache rebuild
-    array(
-        'eventname' => '\core\event\course_module_updated',
-        'callback'  => '\core\observer\partial_course_cache_rebuild::invalidate_module_cache',
-    ),
-    array(
-        'eventname' => '\core\event\course_module_deleted',
-        'callback'  => '\core\observer\partial_course_cache_rebuild::invalidate_module_cache',
-    ),
-    array(
-        'eventname' => '\core\event\course_section_updated',
-        'callback'  => '\core\observer\partial_course_cache_rebuild::invalidate_section_cache',
-    ),
-    array(
-        'eventname' => '\core\event\course_section_deleted',
-        'callback'  => '\core\observer\partial_course_cache_rebuild::invalidate_section_cache',
-    ),
 );
 
 // List of all events triggered by Moodle can be found using Events list report.

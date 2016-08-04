@@ -1020,7 +1020,7 @@ function get_array_of_activities($courseid) {
             $sections = $DB->get_records('course_sections', array('course' => $courseid), 'section ASC', 'id,section,sequence');
         }
 
-        $cachecoursemodinfo = \cache::make('core', 'coursemodinfo');
+        $cachecoursemodinfo = cache::make('core', 'coursemodinfo');
         $coursemodinfo = $cachecoursemodinfo->get($courseid);
         if ($coursemodinfo !== false) {
             $mod = $coursemodinfo->modinfo;
@@ -1537,6 +1537,8 @@ function course_add_cm_to_section($courseorid, $cmid, $sectionnum, $beforemod = 
     }
     $DB->set_field("course_sections", "sequence", $newsequence, array("id" => $section->id));
     $DB->set_field('course_modules', 'section', $section->id, array('id' => $cmid));
+    course_invalidate_module_cache($cmid);
+    course_invalidate_section_cache($section);
     if (is_object($courseorid)) {
         rebuild_course_cache($courseorid->id, true);
     } else {
@@ -1560,6 +1562,7 @@ function set_coursemodule_groupmode($id, $groupmode) {
     $cm = $DB->get_record('course_modules', array('id' => $id), 'id,course,groupmode', MUST_EXIST);
     if ($cm->groupmode != $groupmode) {
         $DB->set_field('course_modules', 'groupmode', $groupmode, array('id' => $cm->id));
+        course_invalidate_module_cache($cm);
         rebuild_course_cache($cm->course, true);
     }
     return ($cm->groupmode != $groupmode);
@@ -1570,6 +1573,7 @@ function set_coursemodule_idnumber($id, $idnumber) {
     $cm = $DB->get_record('course_modules', array('id' => $id), 'id,course,idnumber', MUST_EXIST);
     if ($cm->idnumber != $idnumber) {
         $DB->set_field('course_modules', 'idnumber', $idnumber, array('id' => $cm->id));
+        course_invalidate_module_cache($cm);
         rebuild_course_cache($cm->course, true);
     }
     return ($cm->idnumber != $idnumber);
@@ -1649,6 +1653,7 @@ function set_coursemodule_visible($id, $visible) {
         }
     }
 
+    course_invalidate_module_cache($id);
     rebuild_course_cache($cm->course, true);
     return true;
 }
@@ -1686,6 +1691,7 @@ function set_coursemodule_name($id, $name) {
     $DB->update_record($cm->modname, $module);
     $cm->name = $module->name;
     \core\event\course_module_updated::create_from_cm($cm)->trigger();
+    course_invalidate_module_cache($cm);
     rebuild_course_cache($cm->course, true);
 
     // Attempt to update the grade item if relevant.
@@ -1821,6 +1827,7 @@ function course_delete_module($cmid) {
     ));
     $event->add_record_snapshot('course_modules', $cm);
     $event->trigger();
+    course_invalidate_module_cache($cm);
     rebuild_course_cache($cm->course, true);
 }
 
@@ -1835,6 +1842,7 @@ function delete_mod_from_section($modid, $sectionid) {
             array_splice($modarray, $key[0], 1);
             $newsequence = implode(",", $modarray);
             $DB->set_field("course_sections", "sequence", $newsequence, array("id"=>$section->id));
+            course_invalidate_section_cache($section);
             rebuild_course_cache($section->course, true);
             return true;
         } else {
@@ -1885,11 +1893,13 @@ function move_section_to($course, $section, $destination, $ignorenumsections = f
     foreach ($movedsections as $id => $position) {
         if ($sections[$id] !== $position) {
             $DB->set_field('course_sections', 'section', -$position, array('id' => $id));
+            course_invalidate_section_cache($id);
         }
     }
     foreach ($movedsections as $id => $position) {
         if ($sections[$id] !== $position) {
             $DB->set_field('course_sections', 'section', $position, array('id' => $id));
+            course_invalidate_section_cache($id);
         }
     }
 
@@ -1980,6 +1990,7 @@ function course_update_section($course, $section, $data) {
     // Update record in the DB and course format options.
     $data['id'] = $section->id;
     $DB->update_record('course_sections', $data);
+    course_invalidate_section_cache($section);
     rebuild_course_cache($courseid, true);
     course_get_format($courseid)->update_section_format_options($data);
 
@@ -2013,6 +2024,7 @@ function course_update_section($course, $section, $data) {
                     // We hide the section, so we hide the module but we store the original state in visibleold.
                     set_coursemodule_visible($moduleid, 0);
                     $DB->set_field('course_modules', 'visibleold', $cm->visible, array('id' => $moduleid));
+                    course_invalidate_module_cache($moduleid);
                 }
                 \core\event\course_module_updated::create_from_cm($cm)->trigger();
             }
@@ -3723,6 +3735,9 @@ function duplicate_module($course, $cm) {
         $section = $DB->get_record('course_sections', array('id' => $cm->section, 'course' => $cm->course));
         moveto_module($newcm, $section, $cm);
         moveto_module($cm, $section, $newcm);
+        course_invalidate_module_cache($cm);
+        course_invalidate_module_cache($newcm);
+        course_invalidate_section_cache($section);
 
         // Trigger course module created event. We can trigger the event only if we know the newcmid.
         $event = \core\event\course_module_created::create_from_cm($newcm);
@@ -4075,4 +4090,64 @@ function course_get_tagged_course_modules($tag, $exclusivemode = false, $fromcon
         return new core_tag\output\tagindex($tag, 'core', 'course_modules', $content,
                 $exclusivemode, $fromcontextid, $contextid, $recursivecontext, $page, $totalpages);
     }
+}
+
+/**
+ * Invalidate the cache of a course section
+ *
+ * @param int|stdClass $sectionorid section id or section object
+ * @return bool true if the section cache was existing, false otherwise
+ */
+function course_invalidate_section_cache($sectionorid) {
+    global $DB;
+
+    if (!is_object($sectionorid)) {
+        $sectionorid = $DB->get_record('course_sections', ['id' => $sectionorid], 'course, section', MUST_EXIST);
+    }
+    $section = $sectionorid->section;
+    $course = $sectionorid->course;
+
+    $cache = cache::make('core', 'coursemodinfo');
+    $cache->acquire_lock($course);
+    $coursemodinfo = $cache->get($course);
+    $existing = false;
+    if ($coursemodinfo !== false && array_key_exists($section, $coursemodinfo->sectioncache)) {
+        $existing = true;
+        unset($coursemodinfo->sectioncache[$section]);
+        $cache->set($course, $coursemodinfo);
+    }
+    $cache->release_lock($course);
+
+    return $existing;
+}
+
+/**
+ * Invalidate the cache of a course module
+ *
+ * @param int|stdClass $moduleorid module id or module object
+ * @return bool true if the module cache was existing, false otherwise
+ */
+function course_invalidate_module_cache($moduleorid) {
+    global $DB;
+
+    if (is_object($moduleorid)) {
+        $module = $moduleorid->id;
+        $course = $moduleorid->course;
+    } else {
+        $module = $moduleorid;
+        $course = $DB->get_field('course_modules', 'course', ['id' => $module], MUST_EXIST);
+    }
+
+    $cache = cache::make('core', 'coursemodinfo');
+    $cache->acquire_lock($course);
+    $coursemodinfo = $cache->get($course);
+    $existing = false;
+    if ($coursemodinfo !== false && array_key_exists($module, $coursemodinfo->modinfo)) {
+        $existing = true;
+        unset($coursemodinfo->modinfo[$module]);
+        $cache->set($course, $coursemodinfo);
+    }
+    $cache->release_lock($course);
+
+    return $existing;
 }

@@ -266,6 +266,7 @@ class condition extends \core_availability\condition {
             if ($changed) {
                 $DB->set_field('course_modules', 'availability', json_encode($tree->save()),
                         array('id' => $cm->id));
+                course_invalidate_module_cache($cm);
                 $anychanged = true;
             }
         }
@@ -289,6 +290,7 @@ class condition extends \core_availability\condition {
             if ($changed) {
                 $DB->set_field('course_sections', 'availability', json_encode($tree->save()),
                         array('id' => $section->id));
+                course_invalidate_section_cache($section);
                 $anychanged = true;
             }
         }
