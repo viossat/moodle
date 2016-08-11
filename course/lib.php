@@ -1815,6 +1815,9 @@ function course_delete_module($cmid) {
             "Cannot delete the module $modulename (instance) from section.");
     }
 
+    course_invalidate_module_cache($cm);
+    rebuild_course_cache($cm->course, true);
+
     // Trigger event for course module delete action.
     $event = \core\event\course_module_deleted::create(array(
         'courseid' => $cm->course,
@@ -1827,8 +1830,6 @@ function course_delete_module($cmid) {
     ));
     $event->add_record_snapshot('course_modules', $cm);
     $event->trigger();
-    course_invalidate_module_cache($cm);
-    rebuild_course_cache($cm->course, true);
 }
 
 function delete_mod_from_section($modid, $sectionid) {
