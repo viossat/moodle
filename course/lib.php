@@ -1027,115 +1027,115 @@ function get_array_of_activities($courseid) {
         }
 
         // Build array of activities.
-       foreach ($sections as $section) {
-           if (!empty($section->sequence)) {
-               $sequence = explode(",", $section->sequence);
-               $sequence_count = count($sequence);
-               for ($iseq = 0; $iseq < $sequence_count; $iseq++) {
-                   $seq = $sequence[$iseq];
-                   if (empty($rawmods[$seq]) || isset($mod[$seq])) {
-                       continue;
-                   }
+        foreach ($sections as $section) {
+            if (!empty($section->sequence)) {
+                $sequence = explode(",", $section->sequence);
+                $sequencecount = count($sequence);
+                for ($iseq = 0; $iseq < $sequencecount; $iseq++) {
+                    $seq = $sequence[$iseq];
+                    if (empty($rawmods[$seq]) || isset($mod[$seq])) {
+                        continue;
+                    }
 
-                   $mod_position = ($iseq === 0) ? 0 : array_search($sequence[$iseq - 1], array_keys($mod)) + 1;
-                   // Do not use array_merge() instead of +
-                   $mod = array_slice($mod, 0, $mod_position, true)
-                        + array($seq => new stdClass())
-                        + array_slice($mod, $mod_position, null, true);
+                    $modposition = ($iseq === 0) ? 0 : array_search($sequence[$iseq - 1], array_keys($mod)) + 1;
+                    // Do not use array_merge() instead of +.
+                    $mod = array_slice($mod, 0, $modposition, true)
+                         + array($seq => new stdClass())
+                         + array_slice($mod, $modposition, null, true);
 
-                   $mod[$seq]->id               = $rawmods[$seq]->instance;
-                   $mod[$seq]->cm               = $rawmods[$seq]->id;
-                   $mod[$seq]->mod              = $rawmods[$seq]->modname;
+                    $mod[$seq]->id               = $rawmods[$seq]->instance;
+                    $mod[$seq]->cm               = $rawmods[$seq]->id;
+                    $mod[$seq]->mod              = $rawmods[$seq]->modname;
 
                     // Oh dear. Inconsistent names left here for backward compatibility.
-                   $mod[$seq]->section          = $section->section;
-                   $mod[$seq]->sectionid        = $rawmods[$seq]->section;
+                    $mod[$seq]->section          = $section->section;
+                    $mod[$seq]->sectionid        = $rawmods[$seq]->section;
 
-                   $mod[$seq]->module           = $rawmods[$seq]->module;
-                   $mod[$seq]->added            = $rawmods[$seq]->added;
-                   $mod[$seq]->score            = $rawmods[$seq]->score;
-                   $mod[$seq]->idnumber         = $rawmods[$seq]->idnumber;
-                   $mod[$seq]->visible          = $rawmods[$seq]->visible;
-                   $mod[$seq]->visibleold       = $rawmods[$seq]->visibleold;
-                   $mod[$seq]->groupmode        = $rawmods[$seq]->groupmode;
-                   $mod[$seq]->groupingid       = $rawmods[$seq]->groupingid;
-                   $mod[$seq]->indent           = $rawmods[$seq]->indent;
-                   $mod[$seq]->completion       = $rawmods[$seq]->completion;
-                   $mod[$seq]->extra            = "";
-                   $mod[$seq]->completiongradeitemnumber =
-                           $rawmods[$seq]->completiongradeitemnumber;
-                   $mod[$seq]->completionview   = $rawmods[$seq]->completionview;
-                   $mod[$seq]->completionexpected = $rawmods[$seq]->completionexpected;
-                   $mod[$seq]->showdescription  = $rawmods[$seq]->showdescription;
-                   $mod[$seq]->availability = $rawmods[$seq]->availability;
+                    $mod[$seq]->module           = $rawmods[$seq]->module;
+                    $mod[$seq]->added            = $rawmods[$seq]->added;
+                    $mod[$seq]->score            = $rawmods[$seq]->score;
+                    $mod[$seq]->idnumber         = $rawmods[$seq]->idnumber;
+                    $mod[$seq]->visible          = $rawmods[$seq]->visible;
+                    $mod[$seq]->visibleold       = $rawmods[$seq]->visibleold;
+                    $mod[$seq]->groupmode        = $rawmods[$seq]->groupmode;
+                    $mod[$seq]->groupingid       = $rawmods[$seq]->groupingid;
+                    $mod[$seq]->indent           = $rawmods[$seq]->indent;
+                    $mod[$seq]->completion       = $rawmods[$seq]->completion;
+                    $mod[$seq]->extra            = "";
+                    $mod[$seq]->completiongradeitemnumber =
+                            $rawmods[$seq]->completiongradeitemnumber;
+                    $mod[$seq]->completionview   = $rawmods[$seq]->completionview;
+                    $mod[$seq]->completionexpected = $rawmods[$seq]->completionexpected;
+                    $mod[$seq]->showdescription  = $rawmods[$seq]->showdescription;
+                    $mod[$seq]->availability = $rawmods[$seq]->availability;
 
-                   $modname = $mod[$seq]->mod;
-                   $functionname = $modname."_get_coursemodule_info";
+                    $modname = $mod[$seq]->mod;
+                    $functionname = $modname."_get_coursemodule_info";
 
-                   if (!file_exists("$CFG->dirroot/mod/$modname/lib.php")) {
-                       continue;
-                   }
+                    if (!file_exists("$CFG->dirroot/mod/$modname/lib.php")) {
+                        continue;
+                    }
 
-                   include_once("$CFG->dirroot/mod/$modname/lib.php");
+                    include_once("$CFG->dirroot/mod/$modname/lib.php");
 
-                   if ($hasfunction = function_exists($functionname)) {
-                       if ($info = $functionname($rawmods[$seq])) {
-                           if (!empty($info->icon)) {
-                               $mod[$seq]->icon = $info->icon;
-                           }
-                           if (!empty($info->iconcomponent)) {
-                               $mod[$seq]->iconcomponent = $info->iconcomponent;
-                           }
-                           if (!empty($info->name)) {
-                               $mod[$seq]->name = $info->name;
-                           }
-                           if ($info instanceof cached_cm_info) {
-                               // When using cached_cm_info you can include three new fields
-                               // that aren't available for legacy code
-                               if (!empty($info->content)) {
-                                   $mod[$seq]->content = $info->content;
-                               }
-                               if (!empty($info->extraclasses)) {
-                                   $mod[$seq]->extraclasses = $info->extraclasses;
-                               }
-                               if (!empty($info->iconurl)) {
-                                   // Convert URL to string as it's easier to store. Also serialized object contains \0 byte and can not be written to Postgres DB.
-                                   $url = new moodle_url($info->iconurl);
-                                   $mod[$seq]->iconurl = $url->out(false);
-                               }
-                               if (!empty($info->onclick)) {
-                                   $mod[$seq]->onclick = $info->onclick;
-                               }
-                               if (!empty($info->customdata)) {
-                                   $mod[$seq]->customdata = $info->customdata;
-                               }
-                           } else {
-                               // When using a stdclass, the (horrible) deprecated ->extra field
-                               // is available for BC
-                               if (!empty($info->extra)) {
-                                   $mod[$seq]->extra = $info->extra;
-                               }
-                           }
-                       }
-                   }
-                   // When there is no modname_get_coursemodule_info function,
-                   // but showdescriptions is enabled, then we use the 'intro'
-                   // and 'introformat' fields in the module table
-                   if (!$hasfunction && $rawmods[$seq]->showdescription) {
-                       if ($modvalues = $DB->get_record($rawmods[$seq]->modname,
-                               array('id' => $rawmods[$seq]->instance), 'name, intro, introformat')) {
-                           // Set content from intro and introformat. Filters are disabled
-                           // because we  filter it with format_text at display time
-                           $mod[$seq]->content = format_module_intro($rawmods[$seq]->modname,
-                                   $modvalues, $rawmods[$seq]->id, false);
+                    if ($hasfunction = function_exists($functionname)) {
+                        if ($info = $functionname($rawmods[$seq])) {
+                            if (!empty($info->icon)) {
+                                $mod[$seq]->icon = $info->icon;
+                            }
+                            if (!empty($info->iconcomponent)) {
+                                $mod[$seq]->iconcomponent = $info->iconcomponent;
+                            }
+                            if (!empty($info->name)) {
+                                $mod[$seq]->name = $info->name;
+                            }
+                            if ($info instanceof cached_cm_info) {
+                                // When using cached_cm_info you can include three new fields
+                                // that aren't available for legacy code
+                                if (!empty($info->content)) {
+                                    $mod[$seq]->content = $info->content;
+                                }
+                                if (!empty($info->extraclasses)) {
+                                    $mod[$seq]->extraclasses = $info->extraclasses;
+                                }
+                                if (!empty($info->iconurl)) {
+                                    // Convert URL to string as it's easier to store. Also serialized object contains \0 byte and can not be written to Postgres DB.
+                                    $url = new moodle_url($info->iconurl);
+                                    $mod[$seq]->iconurl = $url->out(false);
+                                }
+                                if (!empty($info->onclick)) {
+                                    $mod[$seq]->onclick = $info->onclick;
+                                }
+                                if (!empty($info->customdata)) {
+                                    $mod[$seq]->customdata = $info->customdata;
+                                }
+                            } else {
+                                // When using a stdclass, the (horrible) deprecated ->extra field
+                                // is available for BC
+                                if (!empty($info->extra)) {
+                                    $mod[$seq]->extra = $info->extra;
+                                }
+                            }
+                        }
+                    }
+                    // When there is no modname_get_coursemodule_info function,
+                    // but showdescriptions is enabled, then we use the 'intro'
+                    // and 'introformat' fields in the module table
+                    if (!$hasfunction && $rawmods[$seq]->showdescription) {
+                        if ($modvalues = $DB->get_record($rawmods[$seq]->modname,
+                                array('id' => $rawmods[$seq]->instance), 'name, intro, introformat')) {
+                            // Set content from intro and introformat. Filters are disabled
+                            // because we  filter it with format_text at display time
+                            $mod[$seq]->content = format_module_intro($rawmods[$seq]->modname,
+                                    $modvalues, $rawmods[$seq]->id, false);
 
-                           // To save making another query just below, put name in here
-                           $mod[$seq]->name = $modvalues->name;
-                       }
-                   }
-                   if (!isset($mod[$seq]->name)) {
-                       $mod[$seq]->name = $DB->get_field($rawmods[$seq]->modname, "name", array("id"=>$rawmods[$seq]->instance));
-                   }
+                            // To save making another query just below, put name in here
+                            $mod[$seq]->name = $modvalues->name;
+                        }
+                    }
+                    if (!isset($mod[$seq]->name)) {
+                        $mod[$seq]->name = $DB->get_field($rawmods[$seq]->modname, "name", array("id"=>$rawmods[$seq]->instance));
+                    }
 
                     // Minimise the database size by unsetting default options when they are
                     // 'empty'. This list corresponds to code in the cm_info constructor.
@@ -1143,17 +1143,17 @@ function get_array_of_activities($courseid) {
                             'indent', 'completion', 'extra', 'extraclasses', 'iconurl', 'onclick', 'content',
                             'icon', 'iconcomponent', 'customdata', 'availability', 'completionview',
                             'completionexpected', 'score', 'showdescription') as $property) {
-                       if (property_exists($mod[$seq], $property) &&
-                               empty($mod[$seq]->{$property})) {
-                           unset($mod[$seq]->{$property});
-                       }
-                   }
-                   // Special case: this value is usually set to null, but may be 0
-                   if (property_exists($mod[$seq], 'completiongradeitemnumber') &&
-                           is_null($mod[$seq]->completiongradeitemnumber)) {
-                       unset($mod[$seq]->completiongradeitemnumber);
-                   }
-               }
+                        if (property_exists($mod[$seq], $property) &&
+                                empty($mod[$seq]->{$property})) {
+                            unset($mod[$seq]->{$property});
+                        }
+                    }
+                    // Special case: this value is usually set to null, but may be 0
+                    if (property_exists($mod[$seq], 'completiongradeitemnumber') &&
+                            is_null($mod[$seq]->completiongradeitemnumber)) {
+                        unset($mod[$seq]->completiongradeitemnumber);
+                    }
+                }
             }
         }
     }

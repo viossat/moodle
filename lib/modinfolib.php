@@ -566,7 +566,7 @@ class course_modinfo {
                 'availability');
         $compressedsections = array();
 
-        $course_format = course_get_format($course);
+        $courseformat = course_get_format($course);
 
         $cachecoursemodinfo = \cache::make('core', 'coursemodinfo');
         $coursemodinfo = $cachecoursemodinfo->get($course->id);
@@ -574,7 +574,7 @@ class course_modinfo {
             $compressedsections = $coursemodinfo->sectioncache;
         }
 
-        $formatoptionsdef = $course_format->section_format_options();
+        $formatoptionsdef = $courseformat->section_format_options();
         // Remove unnecessary data and add availability
         foreach ($sections as $number => $section) {
             if (isset($compressedsections[$number])) {
@@ -583,7 +583,7 @@ class course_modinfo {
             // Add cached options from course format to $section object
             foreach ($formatoptionsdef as $key => $option) {
                 if (!empty($option['cache'])) {
-                    $formatoptions = $course_format->get_format_options($section);
+                    $formatoptions = $courseformat->get_format_options($section);
                     if (!array_key_exists('cachedefault', $option) || $option['cachedefault'] !== $formatoptions[$key]) {
                         $section->$key = $formatoptions[$key];
                     }
